@@ -1,7 +1,7 @@
 import os 
 from pathlib import Path
 from decouple import config
-from datetime import timedelta  # Для JWT
+from datetime import timedelta
 
 # Базовая директория проекта
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +44,7 @@ THIRD_PARTY_APPS = [
 
 # Список локальных приложений
 LOCAL_APPS = [
+    'apps.accounts',
 ]
 
 # Общий список приложений
@@ -148,7 +149,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# AUTH_USER_MODEL='accounts.User'
+AUTH_USER_MODEL='accounts.User'
 
 # Язык и время
 LANGUAGE_CODE = 'ru-ru'
