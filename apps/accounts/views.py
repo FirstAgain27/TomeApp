@@ -5,12 +5,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import login
 from .serializers import (
     UserRegistrationSerializer,
-    UserProfileSerializer
-    
+    UserProfileSerializer,
+    UserLoginSerializer,
+    UserPasswordUpdateSerializer,
+    UserProfileUpdateSerializer,
     )
 from .models import User
 
-class UserRegistrationView(generics.CreateAPIView):
+
+class UserRegistrationAPIView(generics.CreateAPIView):
+    """endpoint для регистрации пользователя"""
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
@@ -28,4 +32,66 @@ class UserRegistrationView(generics.CreateAPIView):
             "access" : str(refresh.access_token),
             "message" : "Регистрация успешна!"
         }, status=status.HTTP_201_CREATED)
+    
+
+class UserLoginAPIView(generics.GenericAPIView):
+    """Вход пользователя (не создаёт объект)"""
+    serializer_class = UserLoginSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data.get('user')
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "user" : UserProfileSerializer(user).data,
+            "refresh" : str(refresh),
+            "access" : str(refresh.access_token),
+            "message" : 'User login successfully',
+        }, status=status.HTTP_200_OK)
+    
+
+class PasswordUpdateAPIView(generics.UpdateAPIView):
+    """endpoint для изменения пароля пользователя"""
+    serializer_class = UserPasswordUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_object(self):
+        return self.request.user
+
+    def validate(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({
+            'message' : 'Password updated successfully'
+        }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def logout(request):
+    """Выход пользователя"""
+    try:
+        refresh_token = request.data.get('refresh_token')
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        return Response({
+            'message' : 'Logout successful'
+        }, status=status.HTTP_200_OK)
+
+    except Exception:
+        return Response({
+            'message' : 'Token is invalid'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+        
+        
+
+    
 
