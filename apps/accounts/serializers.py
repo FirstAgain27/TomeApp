@@ -38,13 +38,35 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
     
-class UserProfileSerializer(serializers.ModelSerializer):
-    """Сериализатор для отображения профиля пользователя"""
-    class Meta: 
-        model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'phone', 'avatar', 'bio')
-        read_only_fields = fields
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Сериализатор для просмотра профиля пользователя"""
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = (
+        'id', 'username', 'email',          
+        'first_name', 'last_name',          
+        'full_name',                        
+    )
+    read_only_fields = ('id', 'created_at', 'updated_at')
+    
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """Сериализатор для обновления профиля пользователя"""
+    
+    class Meta:
+        model = User
+        fields = (
+            'first_name', 'last_name', 'avatar', 'bio'
+        )
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+   
 
 class UserLoginSerializer(serializers.Serializer):
     # Сериализатор для входа пользователя 
@@ -77,19 +99,6 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Must include "email" and "password".'
                 )
-
-class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    """Сериализатор для обновления профиля пользователя"""
-    class Meta:
-        model = User
-        fields = ('first_name', 'last_name', 'avatar', 'bio')
-
-    # Метод обновления данных в профиле пользователя
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value) # (Изменяемый объект, атрибут этого объекта, значение)
-        instance.save()
-        return instance
 
 class UserPasswordUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для смены пароля"""

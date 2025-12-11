@@ -13,7 +13,7 @@ from .serializers import (
 from .models import User
 
 
-class UserRegistrationAPIView(generics.CreateAPIView):
+class UserRegistrationView(generics.CreateAPIView):
     """endpoint для регистрации пользователя"""
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
@@ -34,7 +34,7 @@ class UserRegistrationAPIView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
     
 
-class UserLoginAPIView(generics.GenericAPIView):
+class UserLoginView(generics.GenericAPIView):
     """Вход пользователя (не создаёт объект)"""
     serializer_class = UserLoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -54,7 +54,7 @@ class UserLoginAPIView(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
     
 
-class PasswordUpdateAPIView(generics.UpdateAPIView):
+class PasswordUpdateView(generics.UpdateAPIView):
     """endpoint для изменения пароля пользователя"""
     serializer_class = UserPasswordUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -70,7 +70,19 @@ class PasswordUpdateAPIView(generics.UpdateAPIView):
         return Response({
             'message' : 'Password updated successfully'
         }, status=status.HTTP_200_OK)
+    
+class ProfileView(generics.RetrieveUpdateAPIView):
+    """Просмотр и обновление профиля пользователя"""
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        return self.request.user
+    
+    def get_serializer_class(self):
+        if self.request.method == 'PUT' or self.request.method == 'PATCH':
+            return UserProfileUpdateSerializer
+        return UserProfileSerializer
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
