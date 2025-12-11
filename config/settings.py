@@ -45,6 +45,7 @@ THIRD_PARTY_APPS = [
 # Список локальных приложений
 LOCAL_APPS = [
     'apps.accounts',
+    'apps.main',
 ]
 
 # Общий список приложений
