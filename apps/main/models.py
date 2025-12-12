@@ -133,11 +133,6 @@ class Book(models.Model):
         auto_now=True,
         verbose_name='Дата обновления'
     )
-    
-    is_active = models.BooleanField(
-        verbose_name='Активен',
-        default=True
-    )
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -191,8 +186,9 @@ class Author(models.Model):
     death_date = models.DateField(null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True)
 
-    def __str__(self) -> str:
-        return f"{self.first_name} + {self.second_name}"
+    @property
+    def get_full_name(self) -> str:
+        return f"{self.first_name}  {self.second_name}"
     
     class Meta:
         verbose_name = 'Автор'
