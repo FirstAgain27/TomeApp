@@ -1,17 +1,42 @@
 from django.contrib import admin
 from .models import Book, Author, Category
 
+@admin.register(Author)
+class AuthorAdmin(admin.ModelAdmin):
+    list_display = ['id', 'first_name', 'second_name', 'bio', 'photo', 'birth_date', 'death_date']
+    search_fields = ['second_name', 'first_name']
+    list_filter = ['birth_date']
+
+    def author_book_count(self, obj): # obj - экземпляр класса Author
+        return obj.books.count()
+    author_book_count.short_description = 'Книг'
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    # Подсчет книг в категории
+    def category_book_count(self, obj):
+        return obj.books.count()
+
+    list_display = ['id', 'name', 'category_book_count', 'description_short']
+    search_fields = ['name', 'description']
+
+    def description_short(self, obj):
+        """Обрезает описание до 50 символов"""
+        if obj.description and len(obj.description) > 50:
+            return obj.description[:50] + '...'  # Первые 50 символов + ...
+        return obj.description or ''  # Если нет описания - пустая строка
+
+    description_short.short_description = 'Описание'  # Заголовок колонки
+
+
+
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    # Что показываем в списке
     list_display = ['id', 'short_title', 'author', 'price', 'stock_display', 'created_short']
-    
-    # Поиск по этим полям
     search_fields = ['title', 'isbn', 'author__name']
-    
-    # Фильтры справа
     list_filter = ['author', 'categories', 'cover_type']
-    
+
     # Пагинация
     list_per_page = 20
     

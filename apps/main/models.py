@@ -188,7 +188,7 @@ class Author(models.Model):
 
     @property
     def get_full_name(self) -> str:
-        return f"{self.first_name}  {self.second_name}"
+        return f"{self.first_name} {self.second_name}"
     
     class Meta:
         verbose_name = 'Автор'
