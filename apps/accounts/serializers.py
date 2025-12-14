@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from .models import User
 
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации нового пользователя"""
     password = serializers.CharField(
@@ -99,6 +100,7 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Must include "email" and "password".'
                 )
+
 
 class UserPasswordUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для смены пароля"""

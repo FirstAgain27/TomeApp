@@ -71,6 +71,7 @@ class PasswordUpdateView(generics.UpdateAPIView):
             'message' : 'Password updated successfully'
         }, status=status.HTTP_200_OK)
     
+
 class ProfileView(generics.RetrieveUpdateAPIView):
     """Просмотр и обновление профиля пользователя"""
     serializer_class = UserProfileSerializer
@@ -83,6 +84,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         if self.request.method == 'PUT' or self.request.method == 'PATCH':
             return UserProfileUpdateSerializer
         return UserProfileSerializer
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
