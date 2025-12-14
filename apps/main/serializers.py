@@ -124,9 +124,38 @@ class BookCreateSerializer(serializers.ModelSerializer):
         return value
 
 
+class CategoryListSerializer(serializers.ModelSerializer):
+    """Список всех категорий для отдельной страницы"""
+    books_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Category
+        fields = [
+            'id',
+            'name',
+            'description',
+            'slug',
+        ]
+        read_only_fields = ['slug']
+
+class CategoryMenuSeriilizer(serializers.ModelSerializer):
+    """Для выпадающего меню в шапке сайта"""
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug']
+        read_only_fields = ['slug']
 
 
 
+
+
+
+    
+
+
+    
+
+    
 
 
 
