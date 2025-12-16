@@ -187,8 +187,16 @@ class Author(models.Model):
     slug = models.SlugField(unique=True, blank=True)
 
     @property
-    def get_full_name(self) -> str:
+    def full_name(self) -> str:
         return f"{self.first_name} {self.second_name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.first_name} {self.second_name}")
+        super().save(*args, **kwargs)
+    
+    def __str__(self) -> str:
+        return self.full_name
     
     class Meta:
         verbose_name = 'Автор'

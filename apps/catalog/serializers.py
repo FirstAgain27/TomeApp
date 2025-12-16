@@ -137,6 +137,26 @@ class BookDetailSerializer(serializers.ModelSerializer):
                 }
                 for category in obj.categories.all()
             ]
+        
+class AuthorCreateUpdateSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления и редактирования авторов"""
+    class Meta:
+        model = Author
+        fields = [
+            'first_name', 'second_name', 'bio', 
+            'photo', 'birth_date', 'death_date'
+        ]
+
+    def validate(self, data):
+        birth_date = data.get('birth_date')
+        death_date = data.get('death_date')
+        if birth_date and death_date and birth_date > death_date:
+            raise serializers.ValidationError({
+                "death_date" : 'Дата смерти не может быть раньше даты рождения',
+            })
+        return data 
+        
+        
 
 
 
