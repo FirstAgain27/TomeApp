@@ -216,6 +216,14 @@ class Category(models.Model):
         related_name='children'
     )
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Проверка уникальности
+            if Category.objects.filter(slug=self.slug).exists():
+                self.slug = f"{self.slug}-{self.id or Category.objects.count() + 1}"
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.name
     

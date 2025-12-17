@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from .models import Book, Category, Author
 from django.utils.text import slugify
 
+
 class BookCreateUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания экземпляра Book"""
     author = serializers.PrimaryKeyRelatedField(
@@ -116,27 +117,28 @@ class BookDetailSerializer(serializers.ModelSerializer):
 
         read_only_fields = fields
 
-        def get_author_info(self, obj):
-            if obj.author:
-                return {
-                    'id' : obj.author.id,
-                    'full_name' : obj.author.get_full_name(),
-                    'bio' : obj.author.bio,
-                    'photo': obj.author.photo.url if obj.author.photo else None
-                }
-            return None
+    def get_author_info(self, obj):
+        if obj.author:
+            return {
+                'id' : obj.author.id,
+                'full_name' : obj.author.get_full_name(),
+                'bio' : obj.author.bio,
+                'photo': obj.author.photo.url if obj.author.photo else None
+            }
+        return None
+    
+    def get_categories_info(self, obj):
+        """Используем генератор списков(list comprehension) для получения информации о категории"""
+        return [
+            {
+                'id' : category.id,
+                'name' : category.name,
+                'slug' : category.slug,
+                'description' : category.description
+            }
+            for category in obj.categories.all()
+        ]
         
-        def get_category_info(self, obj):
-            """Используем генератор списков(list comprehension) для получения информации о категории"""
-            return [
-                {
-                    'id' : category.id,
-                    'name' : category.name,
-                    'slug' : category.slug,
-                    'description' : category.description
-                }
-                for category in obj.categories.all()
-            ]
         
 class AuthorCreateUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления и редактирования авторов"""
@@ -157,30 +159,74 @@ class AuthorCreateUpdateSerializer(serializers.ModelSerializer):
         return data 
         
         
+class AuthorListSerializer(serializers.ModelSerializer):
+    """Сериализатор для отображения авторов"""
+    books_count = serializers.IntegerField(source='books.count', read_only=True)
+    
+    class Meta:
+        model = Author
+        fields = [
+            'id', 'first_name', 'second_name', 'bio', 
+            'photo', 'birth_date', 'death_date', 'slug'
+        ]
+        read_only_fields = fields
 
+    
 
-
-
-
-
-
+class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания и обновления категории"""
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    
+    class Meta:
+        model = Category
+        fields = ['name', 'parent', 'description']
         
+    def validate(self, data):
+        parent = data.get('parent')
+        name = data.get('name')
+
+        if self.instance and parent and parent.id == self.instance.id:
+            raise serializers.ValidationError({
+                    'parent' : 'Категория не может быть своим собственным родителем'
+                })
+
+        if Category.objects.filter(name=name).exists():
+            if not self.instance or self.instance.name != name:
+                raise serializers.ValidationError({
+                    'name': 'Категория с таким названием уже существует'
+                })
         
-        
-
-
-
-
-
-
+        return data
+    
+class CategoryShortSerializer(serializers.ModelSerializer):
+    """Упрощенный сериализатор для вложенных категорий (без детей)"""
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'description']
+        read_only_fields = fields
+    
+class CategoryListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка категорий (меню)"""
+    children = serializers.SerializerMethodField(read_only=True)
+    books_count = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'description', 
+                 'parent', 'children', 'books_count']
+        read_only_fields = fields
+    
+    def get_children(self, obj):
+        children = obj.children.all()
+        if children:
+            return CategoryShortSerializer(children, many=True).data
+    
+    def get_books_count(self, obj):
+        """Количество книг в этой категории"""
+        return obj.books.count()  # Используем related_name='books' из модели Book
     
 
-
-    
-
-    
-
-
-
-    
-    
