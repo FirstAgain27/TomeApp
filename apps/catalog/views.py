@@ -160,15 +160,3 @@ class CatalogStatsAPIView(generics.GenericAPIView):
             ),
         }
         return Response(stats)
-
-
-        
-    
-
-
-        
-
-    
-
-
-    
