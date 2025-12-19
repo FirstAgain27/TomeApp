@@ -175,8 +175,9 @@ class AuthorListSerializer(serializers.ModelSerializer):
 
 class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления категории"""
-    parent = serializers.PrimaryKeyRelatedField(
+    parent = serializers.SlugRelatedField( # определяет как будет искаться поле в запросе пользователя
         queryset=Category.objects.all(),
+        slug_field='slug',  # ← Используем slug вместо ID
         required=False,
         allow_null=True
     )
@@ -184,23 +185,48 @@ class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['name', 'parent', 'description']
-        
+    
     def validate(self, data):
         parent = data.get('parent')
         name = data.get('name')
-
-        if self.instance and parent and parent.id == self.instance.id:
+        instance = self.instance
+        
+        # Проверка на цикличность
+        if instance and parent and parent.id == instance.id:
             raise serializers.ValidationError({
-                    'parent' : 'Категория не может быть своим собственным родителем'
-                })
-
-        if Category.objects.filter(name=name).exists():
-            if not self.instance or self.instance.name != name:
+                'parent': 'Категория не может быть своим собственным родителем'
+            })
+        
+        # Проверка уникальности имени (с учётом того, что slug будет сгенерирован из имени)
+        if name:
+            # Преобразуем имя в slug для проверки
+            potential_slug = slugify(name)
+            
+            # Ищем существующие категории с таким slug
+            existing = Category.objects.filter(slug=potential_slug)
+            if instance:  # При обновлении исключаем текущую категорию
+                existing = existing.exclude(id=instance.id)
+            
+            if existing.exists():
                 raise serializers.ValidationError({
-                    'name': 'Категория с таким названием уже существует'
+                    'name': f'Категория с похожим названием уже существует (будет создан slug "{potential_slug}")'
                 })
         
         return data
+    
+    def create(self, validated_data):
+        # Автоматически генерируем slug из имени
+        name = validated_data.get('name')
+        if name:
+            validated_data['slug'] = slugify(name)
+            # Проверяем уникальность slug и добавляем суффикс если нужно
+            base_slug = validated_data['slug']
+            counter = 1
+            while Category.objects.filter(slug=validated_data['slug']).exists():
+                validated_data['slug'] = f"{base_slug}-{counter}"
+                counter += 1
+        
+        return super().create(validated_data)
     
 class CategoryShortSerializer(serializers.ModelSerializer):
     """Упрощенный сериализатор для вложенных категорий (без детей)"""
@@ -228,5 +254,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
     def get_books_count(self, obj):
         """Количество книг в этой категории"""
         return obj.books.count()  # Используем related_name='books' из модели Book
+    
+    
     
 
