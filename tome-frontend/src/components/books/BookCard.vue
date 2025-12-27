@@ -63,7 +63,7 @@
           :disabled="!book.in_stock"
           :class="{'opacity-50 cursor-not-allowed': !book.in_stock}"
         >
-          {{ book.in_stock ? '+ Корзина' : 'Нет' }}
+          {{ book.in_stock ? 'В корзину' : 'Нет' }}
         </button>
       </div>
     </div>

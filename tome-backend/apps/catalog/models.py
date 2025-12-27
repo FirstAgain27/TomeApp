@@ -136,7 +136,12 @@ class Book(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(f'{self.title}-{self.isbn}')
+            self.slug = slugify(self.title)
+            base_slug = self.slug
+            counter = 1
+            while Book.objects.filter(slug=self.slug).exists():
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

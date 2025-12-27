@@ -24,6 +24,8 @@ export interface Book {
   created_at: string
   updated_at: string
   rating_count?: number
+  author?: number
+  categories?: number[]
   categories_info?: Array<{
     id: number
     name: string
@@ -32,23 +34,51 @@ export interface Book {
   }>
 }
 
+export interface Author {
+  id: number
+  first_name: string
+  second_name: string
+  full_name: string
+  slug: string
+  bio?: string
+  photo?: string
+}
+
+export interface Category {
+  id: number
+  name: string
+  slug: string
+  description?: string
+  parent?: number
+}
+
 export const catalogAPI = {
-  async getBooks(): Promise<{ results: Book[] } | Book[]> {
-    const response = await api.get('/catalog/books/')
+  // Получить все книги с фильтрами
+  async getBooks(params?: {
+    author?: string
+    categories?: string
+    ordering?: string
+    search?: string
+    page?: number
+  }): Promise<{ results: Book[] } | Book[]> {
+    const response = await api.get('/catalog/books/', { params })
     return response.data
   },
   
+  // Получить книгу по slug
   async getBook(slug: string): Promise<Book> {
     const response = await api.get(`/catalog/books/${slug}/`)
     return response.data
   },
   
-  async getCategories() {
+  // Получить категории
+  async getCategories(): Promise<Category[]> {
     const response = await api.get('/catalog/categories/')
     return response.data
   },
   
-  async getAuthors() {
+  // Получить авторов
+  async getAuthors(): Promise<Author[]> {
     const response = await api.get('/catalog/authors/')
     return response.data
   }
