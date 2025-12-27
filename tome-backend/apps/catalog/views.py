@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count, Avg
+from django.db.models import Count
 from .models import Book, Category, Author
 from .serializers import (
     BookListSerializer, BookDetailSerializer, BookCreateUpdateSerializer,
@@ -18,9 +18,6 @@ class BookListCreateAPIView(generics.ListCreateAPIView):
     filterset_fields = ['categories', 'author']
     search_fields = ['title', 'description']
     ordering_fields = ['price', 'created_at', 'title']
-
-    pagination_class = None # Временное решение для устранения проблемы с отображением на фронте
-
 
     def get_permissions(self):
         if self.request.method == 'POST':

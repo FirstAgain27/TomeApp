@@ -1,37 +1,24 @@
 <!-- src/views/CatalogView.vue -->
 <template>
-  <div class="pt-8 pb-20">
+  <div class="pt-6 pb-16">
     <!-- Заголовок -->
-    <div class="container mx-auto px-6 mb-10">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-        <div>
-          <h1 class="text-4xl font-bold mb-2">Каталог книг</h1>
-          <p class="text-gray-600">Кураторская подборка эксклюзивных изданий</p>
-        </div>
+    <div class="container mx-auto px-4 mb-8">
+      <div class="text-center">
+        <h1 class="text-3xl font-bold mb-2">Каталог книг</h1>
+        <p class="text-gray-600 text-sm"></p>
       </div>
     </div>
 
     <!-- Сетка книг -->
-    <div class="container mx-auto px-6">
+    <div class="container mx-auto px-4">
       <!-- Загрузка -->
-      <div v-if="loading" class="text-center py-20">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-        <p class="mt-4 text-gray-600">Загружаем каталог...</p>
+      <div v-if="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+        <p class="mt-3 text-gray-600 text-sm">Загружаем каталог...</p>
       </div>
 
-      <!-- Нет книг -->
-      <div v-else-if="books.length === 0" class="text-center py-20">
-        <div class="w-32 h-32 mx-auto mb-8 flex items-center justify-center rounded-full bg-gray-100">
-          <span class="text-6xl">📚</span>
-        </div>
-        <h2 class="text-2xl font-bold mb-4">Каталог пуст</h2>
-        <p class="text-gray-600 max-w-md mx-auto">
-          В базе данных пока нет книг. Добавьте книги через админ-панель Django.
-        </p>
-      </div>
-
-      <!-- Книги -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <!-- Книги 4 в ряд -->
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <BookCard 
           v-for="book in books" 
           :key="book.id" 
@@ -72,15 +59,19 @@ onMounted(async () => {
 const loadBooks = async () => {
   loading.value = true
   try {
-    console.log('Загрузка книг...')
     const data = await catalogAPI.getBooks()
-    console.log('Ответ от API:', data)
     
-    // API возвращает массив напрямую
-    books.value = Array.isArray(data) ? data : []
+    // Получаем книги (массив или results)
+    let allBooks: Book[] = []
+    if (data && typeof data === 'object' && 'results' in data) {
+      allBooks = data.results || []
+    } else if (Array.isArray(data)) {
+      allBooks = data
+    }
     
-    console.log('Загружено книг:', books.value.length)
-    console.log('Первая книга:', books.value[0])
+    // Ограничиваем 12 книгами
+    books.value = allBooks.slice(0, 12)
+    
   } catch (error) {
     console.error('Ошибка загрузки книг:', error)
     books.value = []
