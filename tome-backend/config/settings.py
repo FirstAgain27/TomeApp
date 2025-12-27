@@ -17,13 +17,13 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(','
 
 # CORS настройки (важно для API!)
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:8080",  
-    "http://127.0.0.1:8080",  
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  
+    "http://127.0.0.1:5173",  
 ]
 
-# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Список встроенных Django-приложений
 DJANGO_APPS = [
@@ -37,6 +37,7 @@ DJANGO_APPS = [
 
 # Список сторонних приложений
 THIRD_PARTY_APPS = [
+    'django_filters',
     'rest_framework',
     'rest_framework_simplejwt',  # Добавляем JWT
     'corsheaders',
@@ -108,6 +109,16 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # Основной рендерер для API
+        # 'rest_framework.renderers.BrowsableAPIRenderer',  # Закомментируй если не нужен web UI
+    ],
 }
 
 # JWT настройки

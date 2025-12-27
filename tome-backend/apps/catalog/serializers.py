@@ -69,15 +69,27 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
 
 class BookListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка книг"""
-    author_name = serializers.CharField(source='author.get_full_name')
+    author_name = serializers.CharField(source='author.full_name')
     current_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    discount_price = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        required=False, 
+        allow_null=True
+    )
+    stock_quantity = serializers.IntegerField()
+    in_stock = serializers.BooleanField()
+    discount_percentage = serializers.IntegerField()
 
     class Meta:
         model = Book
         fields = [
             'id', 'title', 'author_name', 'cover_image', 
-            'current_price', 'average_rating', 'slug'
-            ]
+            'current_price', 'average_rating', 'slug',
+            'price', 'discount_price', 'stock_quantity', 
+            'in_stock', 'discount_percentage'
+        ]
         read_only_fields = fields
 
 

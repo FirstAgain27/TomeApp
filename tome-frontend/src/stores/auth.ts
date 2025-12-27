@@ -1,222 +1,124 @@
 // src/stores/auth.ts
 import { defineStore } from 'pinia'
-import api from '@/api'
-import type { User } from '@/types'
+import { ref, computed } from 'vue'
+import { authAPI, type User, type LoginResponse } from '@/api/auth'
+import { useCartStore } from './cart'
 
-interface AuthState {
-  user: User | null
-  isAuthenticated: boolean
-  loading: boolean
-  error: string | null
-}
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref<User | null>(null)
+  const accessToken = ref<string | null>(localStorage.getItem('access_token'))
+  const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
-export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: null,
-    isAuthenticated: false,
-    loading: false,
-    error: null
-  }),
+  const isAuthenticated = computed(() => !!accessToken.value)
 
-  actions: {
-    // Инициализация при запуске приложения
-    initialize() {
-      const token = localStorage.getItem('access_token')
-      const userStr = localStorage.getItem('user')
+  const login = async (email: string, password: string) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const data: LoginResponse = await authAPI.login(email, password)
       
-      if (token && userStr) {
-        try {
-          this.user = JSON.parse(userStr)
-          this.isAuthenticated = true
-          
-          // Устанавливаем токен в axios
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        } catch (error) {
-          console.error('Ошибка при загрузке пользователя:', error)
-          this.clearAuth()
-        }
-      }
-    },
-
-    // Логин
-    async login(email: string, password: string) {
-      this.loading = true
-      this.error = null
+      // Сохраняем токены
+      accessToken.value = data.access
+      refreshToken.value = data.refresh
+      user.value = data.user
       
-      try {
-        const response = await api.post('/login/', { email, password })
-        const { access, refresh, user } = response.data
-        
-        // Сохраняем токены и пользователя
-        localStorage.setItem('access_token', access)
-        localStorage.setItem('refresh_token', refresh)
-        localStorage.setItem('user', JSON.stringify(user))
-        
-        // Устанавливаем токен в axios
-        api.defaults.headers.common['Authorization'] = `Bearer ${access}`
-        
-        // Обновляем состояние
-        this.user = user
-        this.isAuthenticated = true
-        
-        return { success: true }
-      } catch (error: any) {
-        this.error = error.response?.data?.detail || 'Ошибка при входе'
-        return { success: false, error }
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // Регистрация
-    async register(userData: {
-      username: string
-      email: string
-      password: string
-      password_confirm: string
-      first_name?: string
-      last_name?: string
-    }) {
-      this.loading = true
-      this.error = null
+      localStorage.setItem('access_token', data.access)
+      localStorage.setItem('refresh_token', data.refresh)
+      localStorage.setItem('user', JSON.stringify(data.user))
       
-      try {
-        const response = await api.post('/register/', userData)
-        const { access, refresh, user } = response.data
-        
-        // Сохраняем токены и пользователя
-        localStorage.setItem('access_token', access)
-        localStorage.setItem('refresh_token', refresh)
-        localStorage.setItem('user', JSON.stringify(user))
-        
-        // Устанавливаем токен в axios
-        api.defaults.headers.common['Authorization'] = `Bearer ${access}`
-        
-        // Обновляем состояние
-        this.user = user
-        this.isAuthenticated = true
-        
-        return { success: true }
-      } catch (error: any) {
-        if (error.response?.data) {
-          // Обработка ошибок валидации Django
-          const errors = error.response.data
-          if (errors.email) {
-            this.error = `Email: ${errors.email[0]}`
-          } else if (errors.username) {
-            this.error = `Имя пользователя: ${errors.username[0]}`
-          } else if (errors.password) {
-            this.error = `Пароль: ${errors.password[0]}`
-          } else {
-            this.error = 'Ошибка при регистрации'
-          }
-        } else {
-          this.error = 'Ошибка при регистрации'
-        }
-        return { success: false, error }
-      } finally {
-        this.loading = false
-      }
-    },
+      // Загружаем корзину после логина
+      const cartStore = useCartStore()
+      await cartStore.fetchCart()
+      
+      return data
+    } catch (err: any) {
+      error.value = err.response?.data?.non_field_errors?.[0] || 'Ошибка входа'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-    // Выход
-    async logout() {
-      try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        if (refreshToken) {
-          await api.post('/logout/', { refresh_token: refreshToken })
-        }
-      } catch (error) {
-        console.error('Ошибка при выходе:', error)
-      } finally {
-        this.clearAuth()
+  const register = async (data: any) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const response = await authAPI.register(data)
+      
+      // После регистрации автоматически логинимся
+      await login(data.email, data.password)
+      
+      return response
+    } catch (err: any) {
+      // Обработка ошибок валидации
+      if (err.response?.data) {
+        const errors = Object.entries(err.response.data)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages[0] : messages}`)
+          .join(', ')
+        error.value = errors
+      } else {
+        error.value = 'Ошибка регистрации'
       }
-    },
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-    // Обновление токена
-    async refreshToken() {
-      try {
-        const refresh = localStorage.getItem('refresh_token')
-        if (!refresh) throw new Error('No refresh token')
-        
-        const response = await api.post('/token/refresh/', { refresh })
-        const newAccessToken = response.data.access
-        
-        localStorage.setItem('access_token', newAccessToken)
-        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
-        
-        return newAccessToken
-      } catch (error) {
-        this.clearAuth()
-        throw error
+  const logout = async () => {
+    try {
+      if (refreshToken.value) {
+        await authAPI.logout(refreshToken.value)
       }
-    },
-
-    // Очистка авторизации
-    clearAuth() {
+    } finally {
+      // Всегда очищаем
+      user.value = null
+      accessToken.value = null
+      refreshToken.value = null
+      
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
-      delete api.defaults.headers.common['Authorization']
       
-      this.user = null
-      this.isAuthenticated = false
-      this.error = null
-    },
-
-    // Получение профиля
-    async fetchProfile() {
-      try {
-        const response = await api.get('/profile/')
-        this.user = response.data
-        localStorage.setItem('user', JSON.stringify(response.data))
-      } catch (error) {
-        console.error('Ошибка при получении профиля:', error)
-      }
-    },
-
-    // Обновление профиля
-    async updateProfile(profileData: any) {
-      try {
-        const response = await api.put('/profile/', profileData)
-        this.user = response.data
-        localStorage.setItem('user', JSON.stringify(response.data))
-        return { success: true }
-      } catch (error: any) {
-        return { success: false, error: error.response?.data }
-      }
-    },
-
-    // Смена пароля
-    async changePassword(passwordData: {
-      old_password: string
-      new_password: string
-      new_password_confirm: string
-    }) {
-      try {
-        await api.post('/change-password/', passwordData)
-        return { success: true }
-      } catch (error: any) {
-        return { success: false, error: error.response?.data }
-      }
+      // Очищаем корзину
+      const cartStore = useCartStore()
+      cartStore.clearCart()
     }
-  },
+  }
 
-  getters: {
-    // Полное имя пользователя
-    fullName: (state) => {
-      if (!state.user) return ''
-      return `${state.user.first_name || ''} ${state.user.last_name || ''}`.trim() || state.user.username
-    },
-    
-    // Является ли пользователь админом
-    isAdmin: (state) => state.user?.is_staff || false,
-    
-    // Инициалы для аватара
-    initials: (state) => {
-      if (!state.user) return 'U'
-      const first = state.user.first_name?.charAt(0) || state.user.username?.charAt(0) || 'U'
-      return first.toUpperCase()
+  const fetchProfile = async () => {
+    try {
+      const profile = await authAPI.getProfile()
+      user.value = profile
+      localStorage.setItem('user', JSON.stringify(profile))
+    } catch (err) {
+      console.error('Failed to fetch profile:', err)
+      await logout()
     }
+  }
+
+  const initialize = () => {
+    const savedUser = localStorage.getItem('user')
+    if (savedUser) {
+      user.value = JSON.parse(savedUser)
+    }
+  }
+
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    isLoading,
+    error,
+    isAuthenticated,
+    login,
+    register,
+    logout,
+    fetchProfile,
+    initialize
   }
 })

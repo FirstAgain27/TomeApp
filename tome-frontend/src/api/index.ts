@@ -1,7 +1,7 @@
 // src/api/index.ts
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8000/api/v1' // Замени на свой URL
+const API_BASE_URL = 'http://localhost:8000/api/v1'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,6 +20,20 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Интерцептор для обработки 401 ошибки
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
     return Promise.reject(error)
   }
 )

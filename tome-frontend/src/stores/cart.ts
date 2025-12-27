@@ -1,131 +1,114 @@
 // src/stores/cart.ts
 import { defineStore } from 'pinia'
-import type { Book } from '@/types'
+import { ref, computed } from 'vue'
+import { cartAPI, type Cart, type CartItem } from '@/api/cart'
 
-export interface CartItem {
-  id: number
-  book: Book
-  quantity: number
-  addedAt: string
-}
+export const useCartStore = defineStore('cart', () => {
+  const cart = ref<Cart | null>(null)
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
-interface CartState {
-  items: CartItem[]
-  isOpen: boolean
-}
+  const items = computed(() => cart.value?.items || [])
+  
+  const totalItems = computed(() => {
+    if (!cart.value) return 0
+    return cart.value.total_items || 0
+  })
 
-export const useCartStore = defineStore('cart', {
-  state: (): CartState => ({
-    items: [],
-    isOpen: false
-  }),
+  const totalPrice = computed(() => {
+    if (!cart.value) return 0
+    return parseFloat(cart.value.total_price) || 0
+  })
 
-  getters: {
-    // Количество товаров в корзине
-    totalItems: (state) => {
-      return state.items.reduce((total, item) => total + item.quantity, 0)
-    },
-    
-    // Общая стоимость
-    totalPrice: (state) => {
-      return state.items.reduce((total, item) => {
-        return total + (item.book.current_price * item.quantity)
-      }, 0)
-    },
-    
-    // Проверка на пустоту
-    isEmpty: (state) => state.items.length === 0,
-    
-    // Сгруппированные товары (для отображения)
-    groupedItems: (state) => state.items
-  },
+  const isEmpty = computed(() => items.value.length === 0)
+  
+  const groupedItems = computed(() => items.value)
 
-  actions: {
-    // Добавить товар в корзину
-    addItem(book: Book, quantity: number = 1) {
-      console.log('Добавляем книгу в корзину:', book.title) // Для отладки
-      
-      const existingItem = this.items.find(item => item.book.id === book.id)
-      
-      if (existingItem) {
-        existingItem.quantity += quantity
-        console.log('Увеличили количество до:', existingItem.quantity)
-      } else {
-        this.items.push({
-          id: Date.now(),
-          book,
-          quantity,
-          addedAt: new Date().toISOString()
-        })
-        console.log('Добавили новую книгу в корзину')
-      }
-      
-      // Показываем корзину при добавлении
-      this.isOpen = true
-      
-      // Сохраняем в localStorage
-      this.saveToLocalStorage()
-      
-      console.log('Товаров в корзине теперь:', this.totalItems)
-    },
-
-    // Удалить товар из корзины
-    removeItem(itemId: number) {
-      this.items = this.items.filter(item => item.id !== itemId)
-      this.saveToLocalStorage()
-    },
-
-    // Изменить количество товара
-    updateQuantity(itemId: number, quantity: number) {
-      const item = this.items.find(item => item.id === itemId)
-      if (item) {
-        if (quantity <= 0) {
-          this.removeItem(itemId)
-        } else {
-          item.quantity = quantity
-        }
-        this.saveToLocalStorage()
-      }
-    },
-
-    // Очистить корзину
-    clearCart() {
-      this.items = []
-      this.saveToLocalStorage()
-    },
-
-    // Переключить видимость корзины (для модального окна/сайдбара)
-    toggleCart() {
-      this.isOpen = !this.isOpen
-    },
-
-    // Открыть корзину
-    openCart() {
-      this.isOpen = true
-    },
-
-    // Закрыть корзину
-    closeCart() {
-      this.isOpen = false
-    },
-
-    // Сохранение в localStorage
-    saveToLocalStorage() {
-      localStorage.setItem('cart_items', JSON.stringify(this.items))
-    },
-
-    // Загрузка из localStorage
-    loadFromLocalStorage() {
-      const saved = localStorage.getItem('cart_items')
-      if (saved) {
-        try {
-          this.items = JSON.parse(saved)
-          console.log('Загружена корзина из localStorage:', this.items.length, 'товаров')
-        } catch (e) {
-          console.error('Failed to load cart from localStorage:', e)
-          this.items = []
-        }
-      }
+  const fetchCart = async () => {
+    if (!localStorage.getItem('access_token')) {
+      cart.value = null
+      return
     }
+    
+    isLoading.value = true
+    error.value = null
+    try {
+      cart.value = await cartAPI.getCart()
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Не удалось загрузить корзину'
+      cart.value = null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const loadFromLocalStorage = async () => {
+    await fetchCart()
+  }
+
+  const addToCart = async (bookId: number, quantity: number = 1) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      await cartAPI.addToCart(bookId, quantity)
+      await fetchCart()
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Не удалось добавить в корзину'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const removeItem = async (id: number) => {
+    try {
+      await cartAPI.removeFromCart(id)
+      await fetchCart()
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Не удалось удалить товар'
+      throw err
+    }
+  }
+
+  const updateQuantity = async (id: number, quantity: number) => {
+    if (quantity < 1) {
+      await removeItem(id)
+      return
+    }
+    
+    try {
+      await cartAPI.updateCartItem(id, quantity)
+      await fetchCart()
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Не удалось обновить количество'
+      throw err
+    }
+  }
+
+  const clearCart = async () => {
+    try {
+      await cartAPI.clearCart()
+      cart.value = null
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Не удалось очистить корзину'
+      throw err
+    }
+  }
+
+  return {
+    cart,
+    items,
+    isLoading,
+    error,
+    totalItems,
+    totalPrice,
+    isEmpty,
+    groupedItems,
+    fetchCart,
+    loadFromLocalStorage,
+    addToCart,
+    removeItem,
+    updateQuantity,
+    clearCart
   }
 })

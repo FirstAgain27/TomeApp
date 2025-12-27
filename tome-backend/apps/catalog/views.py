@@ -15,19 +15,22 @@ class BookListCreateAPIView(generics.ListCreateAPIView):
     """Список книг с фильтрацией и создание новой книги"""
     queryset = Book.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'authors']
+    filterset_fields = ['categories', 'author']
     search_fields = ['title', 'description']
     ordering_fields = ['price', 'created_at', 'title']
-    
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return BookListSerializer
-        return BookCreateUpdateSerializer
+
+    pagination_class = None # Временное решение для устранения проблемы с отображением на фронте
+
 
     def get_permissions(self):
         if self.request.method == 'POST':
             return [permissions.IsAdminUser()]
         return [permissions.AllowAny()]
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return BookListSerializer
+        return BookCreateUpdateSerializer
 
 
 class BookRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -124,7 +127,7 @@ class BooksByCategoryAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         category_slug = self.kwargs['slug']
-        return Book.objects.filter(category__slug=category_slug)
+        return Book.objects.filter(categories__slug=category_slug)
 
 
 class BooksByAuthorAPIView(generics.ListAPIView):
@@ -136,7 +139,7 @@ class BooksByAuthorAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         author_slug = self.kwargs['slug']
-        return Book.objects.filter(authors__slug=author_slug)
+        return Book.objects.filter(author__slug=author_slug)
 
 
 class CatalogStatsAPIView(generics.GenericAPIView):
