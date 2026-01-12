@@ -50,3 +50,5 @@ class OrderItem(models.Model):
     book = models.ForeignKey(Book, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
+
+
