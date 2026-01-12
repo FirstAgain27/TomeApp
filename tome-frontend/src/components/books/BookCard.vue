@@ -1,6 +1,5 @@
-<!-- src/components/books/BookCard.vue -->
 <template>
-  <article class="group relative flex flex-col h-full bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg overflow-hidden max-w-[280px] mx-auto">
+  <article class="group relative flex flex-col h-full bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg overflow-hidden max-w-[280px] mx-auto w-full">
     <!-- Бейдж скидки -->
     <div 
       v-if="book.discount_percentage && book.discount_percentage > 0" 

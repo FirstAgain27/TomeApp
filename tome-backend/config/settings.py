@@ -48,6 +48,7 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.catalog',
     'apps.cart',
+    'apps.orders'
 ]
 
 # Общий список приложений

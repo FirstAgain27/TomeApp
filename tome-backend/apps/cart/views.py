@@ -6,9 +6,6 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Cart
 from .serializers import (
     CartItemReadSerializer, 
-    CartItem,
-    CartListSerializer,
-    CartItemWriteSerializer,
     CartSerializer,
 )
 
@@ -77,9 +74,5 @@ class CartItemViewSet(viewsets.ModelViewSet):
         cart = Cart.objects.get(user=self.request.user)
         serializer.save(cart)
 
-    @action(detail=False, methods=['post'])
-    def bulk_update(self, request):
-        """Массовое обновление количества нескольких items"""
-        # TODO: Реализовать позже
-        pass
+
 
