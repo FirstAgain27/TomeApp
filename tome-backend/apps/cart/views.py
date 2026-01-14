@@ -3,10 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Cart
+from .models import Cart, CartItem
 from .serializers import (
     CartItemReadSerializer, 
     CartSerializer,
+    CartItemWriteSerializer,
+
 )
 
 
@@ -61,18 +63,17 @@ class CartItemViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Только элементы корзины текущего пользователя"""
-        cart = Cart.objects.get(user=self.request.user)
-        return cart 
+        return CartItem.objects.filter(cart__user=self.request.user)
     
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return CartItemReadSerializer
-        return CartItemReadSerializer
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return CartItemWriteSerializer  # Для создания/обновления
+        return CartItemReadSerializer  # Для чтения
     
     def perform_create(self, serializer):
         # Автоматически привязываем к корзине пользователя
         cart = Cart.objects.get(user=self.request.user)
-        serializer.save(cart)
+        serializer.save(cart=cart)
 
 
 

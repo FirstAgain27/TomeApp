@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Order, OrderItem
 from cart.models import CartItem
@@ -7,7 +8,8 @@ from rest_framework.response import Response
 from .serializers import (OrderCreateSerializer,
                           OrderListSerializer,
                           OrderDetailSerializer,
-                          OrderAdminUpdateSerializer
+                          OrderAdminUpdateSerializer,
+                          OrderCancelSerializer,
                           )
 
 
@@ -85,5 +87,29 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         return Response(OrderDetailSerializer(order).data, status=status.HTTP_201_CREATED)
     
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None, *args, **kwargs):
+        order = self.get_object()
+        serializer = OrderCancelSerializer(data=request.data, context = {'request' : request})
+        
+        serializer.is_valid(raise_exception=True)
+        
+        """ Можно отменить заказ только если он в обработке или оплачен, 
+        для остальных статусов - возвращаем error"""
+        if order.status not in ['PAID', 'PENDING']: 
+            return Response({
+                'error' : f'Нельзя отменить заказ со статусом {order.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        order.status = 'CANCELED'
+        order.cancellation_reason = serializer.validated_data['reason']
 
+        order.save()
 
+        return Response({
+            'message': 'Заказ успешно отменен',
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'new_status': order.status
+        })
