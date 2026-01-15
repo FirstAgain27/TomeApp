@@ -3,13 +3,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Order, OrderItem
-from cart.models import CartItem
+from apps.cart.models import CartItem
 from rest_framework.response import Response
 from .serializers import (OrderCreateSerializer,
                           OrderListSerializer,
                           OrderDetailSerializer,
                           OrderAdminUpdateSerializer,
                           OrderCancelSerializer,
+                          OrderNoteAddSerializer
                           )
 
 
@@ -48,6 +49,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             data=request.data, 
             context = {'request' : request}
             )
+        
         serializer.is_valid(raise_exception=True)
         
         cart_items = CartItem.objects.filter(cart=request.user.cart)
@@ -89,6 +91,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None, *args, **kwargs):
+        """Метод отмены заказа"""
         order = self.get_object()
         serializer = OrderCancelSerializer(data=request.data, context = {'request' : request})
         
@@ -113,3 +116,21 @@ class OrderViewSet(viewsets.ModelViewSet):
             'order_number': order.order_number,
             'new_status': order.status
         })
+    
+    @action(detail=True, methods=['post'])
+    def add_note(self, request, pk=None, *args, **kwargs):
+        """Метод для добавления заметки к заказу"""
+        order = self.get_object()
+        serializer = OrderNoteAddSerializer(
+            data=request.data, 
+            context = {'request' : request,
+                       'order' : order})
+
+        serializer.is_valid(raise_exception=True)
+
+        order.note = serializer.validated_data['note']
+        order.save()
+
+        return Response({'note' : order.note}, status=status.HTTP_200_OK)
+
+ 

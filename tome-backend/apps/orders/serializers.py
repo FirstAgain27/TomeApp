@@ -117,7 +117,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['order_number', 'user', 'phone_number',
                   'shipping_address', 'total_price', 'status',
-                  'payment_method', 'payment_status', 'updated_at', 'created_at', 'items', 'formatted_date']
+                  'payment_method', 'payment_status', 'updated_at', 'created_at', 'items', 'formatted_date', 'note']
         
         read_only_fields = [
         'order_number', 'user', 'total_price', 'created_at', 'updated_at',
@@ -128,3 +128,20 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                   'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
         return f"{obj.created_at.day} {months[obj.created_at.month-1]} {obj.created_at.year}"
 
+
+
+class OrderNoteAddSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления заметки к заказу"""
+
+    class Meta:
+        model = Order
+        fields = ['note']
+
+    def validate_note(self, value):
+        if value is None:
+            return value
+        
+        if value.strip() == '':
+            raise serializers.ValidationError('Заметка не может быть пустой строкой')
+        
+        return value

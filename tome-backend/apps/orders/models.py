@@ -34,6 +34,9 @@ class Order(models.Model):
     shipping_address = models.TextField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    # Заметка к заказу
+    note = models.CharField(max_length=200, blank=True)
+
     # статусы
     status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='PENDING')
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD_CHOICES)
