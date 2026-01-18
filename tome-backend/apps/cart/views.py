@@ -60,6 +60,7 @@ class CartViewSet(viewsets.ModelViewSet):
 
 class CartItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = CartItemWriteSerializer
     
     def get_queryset(self):
         """Только элементы корзины текущего пользователя"""
