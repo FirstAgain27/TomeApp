@@ -7,13 +7,6 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    # favorite_category = models.ForeignKey(
-    #     # Category,
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     related_name='book_category'
-    # )
     bio = models.TextField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

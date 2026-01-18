@@ -7,6 +7,7 @@ export const useCartStore = defineStore('cart', () => {
   const cart = ref<Cart | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const isOpen = ref(false) 
 
   const items = computed(() => cart.value?.items || [])
   
@@ -23,6 +24,15 @@ export const useCartStore = defineStore('cart', () => {
   const isEmpty = computed(() => items.value.length === 0)
   
   const groupedItems = computed(() => items.value)
+
+  // ДОБАВИЛ методы для открытия/закрытия корзины
+  const openCart = () => {
+    isOpen.value = true
+  }
+  
+  const closeCart = () => {
+    isOpen.value = false
+  }
 
   const fetchCart = async () => {
     if (!localStorage.getItem('access_token')) {
@@ -96,19 +106,27 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   return {
+    // Состояние
     cart,
-    items,
     isLoading,
     error,
+    isOpen,
+    
+    // Геттеры
+    items,
     totalItems,
     totalPrice,
     isEmpty,
     groupedItems,
+    
+    // Действия
     fetchCart,
     loadFromLocalStorage,
     addToCart,
     removeItem,
     updateQuantity,
-    clearCart
+    clearCart,
+    openCart,
+    closeCart 
   }
 })

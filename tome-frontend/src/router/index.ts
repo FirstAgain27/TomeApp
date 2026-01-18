@@ -80,18 +80,22 @@ const router = createRouter({
       meta: { title: 'Страница не найдена | Tome' }
     }
   ],
+  
+  // ДОБАВЛЯЕМ СЮДА:
+  scrollBehavior(to, from, savedPosition) {
+    // Всегда возвращаемся наверх при смене маршрута
+    return { top: 0 }
+  }
 })
 
 // Навигационные хуки
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
-  // Устанавливаем заголовок страницы
   if (to.meta.title) {
     document.title = to.meta.title as string
   }
 
-  // Проверка аутентификации
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
@@ -99,6 +103,11 @@ router.beforeEach((to, from, next) => {
   } else {
     next()
   }
+})
+
+router.afterEach(() => {
+  // Гарантированно скроллим наверх
+  window.scrollTo(0, 0)
 })
 
 export default router

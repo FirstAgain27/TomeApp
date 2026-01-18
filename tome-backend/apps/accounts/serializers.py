@@ -46,6 +46,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = (
+        'avatar',
         'id', 'username', 'email',          
         'first_name', 'last_name',          
         'full_name',                        
@@ -79,28 +80,21 @@ class UserLoginSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if email and password:
-            user = authenticate(
-                request = self.context.get('request'),
-                username = email,
-                password = password
-            )
-            if not user:
-                raise serializers.ValidationError(
-                    'Email or password is invalid.'
-                )
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                raise serializers.ValidationError('Неправильный email или пароль.')
+            
+            if not user.check_password(password):
+                raise serializers.ValidationError('Неправильный email или пароль.')
             
             if not user.is_active:
-                raise serializers.ValidationError(
-                    'User is disabled.'
-                )
+                raise serializers.ValidationError('Пользователь деактивирован')
+            
             attrs['user'] = user
             return attrs
         
-        else:
-            raise serializers.ValidationError(
-                'Must include "email" and "password".'
-                )
-
+        raise serializers.ValidationError('Необходимо указать email и пароль.')
 
 class UserPasswordUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для смены пароля"""
@@ -132,6 +126,7 @@ class UserPasswordUpdateSerializer(serializers.ModelSerializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
 
 
 
