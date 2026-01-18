@@ -35,7 +35,9 @@ export const useAuthStore = defineStore('auth', () => {
       
       return data
     } catch (err: any) {
-      error.value = err.response?.data?.non_field_errors?.[0] || 'Ошибка входа'
+      error.value = err.response?.data?.non_field_errors?.[0] || 
+                    err.response?.data?.detail || 
+                    'Ошибка входа'
       throw err
     } finally {
       isLoading.value = false
@@ -49,8 +51,18 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authAPI.register(data)
       
-      // После регистрации автоматически логинимся
-      await login(data.email, data.password)
+      // Сохраняем токены из ответа регистрации
+      accessToken.value = response.access
+      refreshToken.value = response.refresh
+      user.value = response.user
+      
+      localStorage.setItem('access_token', response.access)
+      localStorage.setItem('refresh_token', response.refresh)
+      localStorage.setItem('user', JSON.stringify(response.user))
+      
+      // Загружаем корзину
+      const cartStore = useCartStore()
+      await cartStore.fetchCart()
       
       return response
     } catch (err: any) {
@@ -74,6 +86,8 @@ export const useAuthStore = defineStore('auth', () => {
       if (refreshToken.value) {
         await authAPI.logout(refreshToken.value)
       }
+    } catch (err) {
+      console.error('Logout error:', err)
     } finally {
       // Всегда очищаем
       user.value = null

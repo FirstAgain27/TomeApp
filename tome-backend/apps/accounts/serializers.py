@@ -41,18 +41,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Сериализатор для просмотра профиля пользователя"""
     full_name = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta: 
+        model = User
         fields = (
-        'avatar',
-        'id', 'username', 'email',          
-        'first_name', 'last_name',          
-        'full_name',                        
-    )
-    read_only_fields = ('id', 'created_at', 'updated_at')
+            'avatar',
+            'id', 'username', 'email',          
+            'first_name', 'last_name',          
+            'full_name',                        
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
     
+    def get_full_name(self, obj):
+        return obj.full_name
+
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для обновления профиля пользователя"""
@@ -95,6 +98,7 @@ class UserLoginSerializer(serializers.Serializer):
             return attrs
         
         raise serializers.ValidationError('Необходимо указать email и пароль.')
+    
 
 class UserPasswordUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для смены пароля"""

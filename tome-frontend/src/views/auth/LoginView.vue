@@ -22,6 +22,7 @@
             required
             class="input-field"
             placeholder="your@email.com"
+            :disabled="isLoading"
           >
         </div>
 
@@ -34,6 +35,7 @@
             required
             class="input-field"
             placeholder="••••••••"
+            :disabled="isLoading"
           >
         </div>
 
@@ -57,6 +59,14 @@
           </span>
           <span v-else>Войти</span>
         </button>
+
+        <!-- Отладочная информация (удали после теста) -->
+        <div v-if="false" class="mt-8 p-4 bg-gray-100 rounded text-xs">
+          <p>Email: {{ form.email }}</p>
+          <p>Password: {{ form.password ? '***' + form.password.slice(-3) : '' }}</p>
+          <p>Store isAuthenticated: {{ authStore.isAuthenticated }}</p>
+          <p>Store user: {{ authStore.user?.email }}</p>
+        </div>
       </form>
     </div>
   </div>
@@ -87,12 +97,21 @@ const handleLogin = async () => {
   isLoading.value = true
   error.value = ''
   
+  console.log('🔐 Попытка входа с:', form.value.email)
+  
   try {
-    await authStore.login(form.value.email, form.value.password)
+    const result = await authStore.login(form.value.email, form.value.password)
+    console.log('✅ Успешный вход:', result)
+    
+    // authStore.login уже перенаправляет, но для надежности:
     router.push('/catalog')
   } catch (err: any) {
-    error.value = err.response?.data?.non_field_errors?.[0] || 'Неверный email или пароль'
-    console.error('Login error:', err)
+    console.error('❌ Ошибка входа:', err)
+    console.error('📄 Ответ сервера:', err.response?.data)
+    
+    error.value = err.response?.data?.non_field_errors?.[0] || 
+                  err.response?.data?.detail || 
+                  'Неверный email или пароль'
   } finally {
     isLoading.value = false
   }

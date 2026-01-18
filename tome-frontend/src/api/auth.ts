@@ -29,24 +29,24 @@ export interface RegisterData {
 export const authAPI = {
   // Логин
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await api.post('/auth/login/', { email, password })
+    const response = await api.post('/accounts/login/', { email, password })
     return response.data
   },
 
   // Регистрация
   async register(data: RegisterData): Promise<LoginResponse> {
-    const response = await api.post('/auth/register/', data)
+    const response = await api.post('/accounts/register/', data)
     return response.data
   },
 
   // Выход
   async logout(refreshToken: string): Promise<void> {
-    await api.post('/auth/logout/', { refresh_token: refreshToken })
+    await api.post('/accounts/logout/', { refresh_token: refreshToken })
   },
 
   // Профиль
   async getProfile(): Promise<User> {
-    const response = await api.get('/auth/profile/')
+    const response = await api.get('/accounts/profile/')
     return response.data
   }
 }

@@ -33,6 +33,46 @@
             />
           </div>
 
+          <!-- Username -->
+          <div>
+            <label for="username" class="block text-sm font-medium mb-2">Имя пользователя</label>
+            <input
+              id="username"
+              v-model="form.username"
+              type="text"
+              required
+              class="input-field"
+              placeholder="johndoe"
+              :disabled="loading"
+            />
+          </div>
+
+          <!-- First Name (optional) -->
+          <div>
+            <label for="first_name" class="block text-sm font-medium mb-2">Имя (необязательно)</label>
+            <input
+              id="first_name"
+              v-model="form.first_name"
+              type="text"
+              class="input-field"
+              placeholder="Иван"
+              :disabled="loading"
+            />
+          </div>
+
+          <!-- Last Name (optional) -->
+          <div>
+            <label for="last_name" class="block text-sm font-medium mb-2">Фамилия (необязательно)</label>
+            <input
+              id="last_name"
+              v-model="form.last_name"
+              type="text"
+              class="input-field"
+              placeholder="Иванов"
+              :disabled="loading"
+            />
+          </div>
+
           <!-- Password -->
           <div>
             <label for="password" class="block text-sm font-medium mb-2">Пароль</label>
@@ -66,11 +106,6 @@
         <!-- Error message -->
         <div v-if="error" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded text-sm">
           {{ error }}
-        </div>
-
-        <!-- Success message -->
-        <div v-if="success" class="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded text-sm">
-          {{ success }}
         </div>
 
         <!-- Terms -->
@@ -135,18 +170,20 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const error = ref('')
-const success = ref('')
 
 const form = reactive({
   email: '',
+  username: '',
   password: '',
   password_confirm: '',
+  first_name: '',
+  last_name: '',
   agreeTerms: false
 })
 
 const handleRegister = async () => {
   // Валидация
-  if (!form.email || !form.password || !form.password_confirm) {
+  if (!form.email || !form.password || !form.password_confirm || !form.username) {
     error.value = 'Пожалуйста, заполните все обязательные поля'
     return
   }
@@ -168,45 +205,37 @@ const handleRegister = async () => {
 
   loading.value = true
   error.value = ''
-  success.value = ''
 
   try {
-    // Пока используем моковую регистрацию (без API)
-    console.log('Моковая регистрация с:', form.email)
+    // Реальная регистрация через authStore
+    await authStore.register({
+      email: form.email,
+      username: form.username,
+      password: form.password,
+      password_confirm: form.password_confirm,
+      first_name: form.first_name,
+      last_name: form.last_name
+    })
     
-    // Имитация успешной регистрации
-    setTimeout(() => {
-      // Создаём мокового пользователя
-      const mockUser = {
-        id: Date.now(),
-        email: form.email,
-        username: form.email.split('@')[0],
-        first_name: '',
-        last_name: '',
-        is_staff: false,
-        bio: '',
-        avatar: null
-      }
-      
-      // Сохраняем в localStorage для теста
-      localStorage.setItem('access_token', 'mock-token-' + Date.now())
-      localStorage.setItem('refresh_token', 'mock-refresh-' + Date.now())
-      localStorage.setItem('user', JSON.stringify(mockUser))
-      
-      // Обновляем store
-      authStore.user = mockUser
-      authStore.isAuthenticated = true
-      
-      success.value = 'Аккаунт успешно создан! Перенаправляем...'
-      
-      // Автоматический вход после регистрации
-      setTimeout(() => {
-        router.push('/')
-      }, 1500)
-    }, 1000)
+    // Перенаправление происходит внутри authStore
+    // Если нужно показать сообщение о успехе:
+    // router.push('/catalog') // authStore уже делает это
     
   } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Ошибка при регистрации. Попробуйте позже.'
+    // Обработка ошибок от бэкенда
+    if (err.response?.data) {
+      // Парсим ошибки Django
+      const errors = Object.entries(err.response.data)
+        .map(([field, messages]) => {
+          const fieldName = field === 'non_field_errors' ? '' : `${field}: `
+          return `${fieldName}${Array.isArray(messages) ? messages[0] : messages}`
+        })
+        .join(', ')
+      error.value = errors
+    } else {
+      error.value = err.message || 'Ошибка при регистрации'
+    }
+    console.error('Registration error:', err)
   } finally {
     loading.value = false
   }
